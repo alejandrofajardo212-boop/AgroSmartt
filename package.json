@@ -12,7 +12,9 @@
     "dev:api": "npm --workspace apps/api run dev",
     "dev:web": "npm --workspace apps/web run dev",
     "build": "npm --workspace apps/web run build",
-    "test": "npm --workspace apps/api test"
+    "test:api": "npm --workspace apps/api test",
+    "test:web": "npm --workspace apps/web test",
+    "test": "npm run test:api && npm run test:web"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

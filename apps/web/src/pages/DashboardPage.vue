@@ -1,77 +1,112 @@
 <script setup>
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import { useDashboardStore } from '../stores/dashboard';
-import { getApiError } from '../api/client';
-import StatCard from '../components/StatCard.vue';
+import { MODULES } from '../backend/models/modules';
+import { ROLES } from '../backend/models/roles';
+import { useAuthStore } from '../stores/auth';
+import { usePlatformStore } from '../stores/platform';
 
-const dashboard = useDashboardStore();
+const auth = useAuthStore();
+const platform = usePlatformStore();
 const $q = useQuasar();
-onMounted(async () => {
-  try { await dashboard.load(); }
-  catch (error) { $q.notify({ type: 'negative', message: getApiError(error) }); }
+const today = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+const availableModules = computed(() => MODULES.filter((item) => item.roles.includes(auth.user?.role) || auth.user?.role === ROLES.ADMIN));
+
+const cards = computed(() => {
+  const data = platform.dashboard || {};
+  const money = (amount) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount || 0);
+  if (auth.user?.role === ROLES.WORKER) {
+    return [
+      { label: 'Tareas pendientes', value: data.pendingTasks, icon: 'task_alt', tone: 'gold', change: 'Asignadas al equipo' },
+      { label: 'Actividades', value: data.activities, icon: 'event_note', tone: 'blue', change: 'En el plan de trabajo' },
+      { label: 'Cosechas registradas', value: data.harvests, icon: 'agriculture', tone: 'green', change: 'Registros de producción' },
+      { label: 'Novedades', value: data.news, icon: 'campaign', tone: 'red', change: 'Reportes del equipo' }
+    ];
+  }
+  if (auth.user?.role === ROLES.AGRONOMIST) {
+    return [
+      { label: 'Cultivos monitoreados', value: data.crops, icon: 'grass', tone: 'green', change: 'En tus fincas' },
+      { label: 'Recomendaciones', value: data.recommendations, icon: 'lightbulb', tone: 'gold', change: 'Criterios técnicos' },
+      { label: 'Reportes fitosanitarios', value: data.pests, icon: 'pest_control', tone: 'red', change: 'Plagas y enfermedades' },
+      { label: 'Sensores en alerta', value: data.alerts, icon: 'sensors', tone: 'blue', change: 'Revisión técnica' }
+    ];
+  }
+  if (auth.user?.role === ROLES.ACCOUNTANT) {
+    return [
+      { label: 'Ingresos registrados', value: money(data.income), icon: 'trending_up', tone: 'green', change: 'Ventas e ingresos' },
+      { label: 'Gastos registrados', value: money(data.expenses), icon: 'payments', tone: 'red', change: 'Egresos operativos' },
+      { label: 'Costos de producción', value: money(data.costs), icon: 'account_balance_wallet', tone: 'gold', change: 'Costos agrícolas' },
+      { label: 'Balance', value: money(data.income - data.expenses - data.costs), icon: 'account_balance', tone: 'blue', change: 'Ingresos menos costos' }
+    ];
+  }
+  return [
+    { label: 'Fincas registradas', value: data.farms, icon: 'map', tone: 'green', change: 'Parcelas agrícolas' },
+    { label: 'Cultivos activos', value: data.crops, icon: 'grass', tone: 'gold', change: 'En distintos ciclos' },
+    { label: 'Sensores vinculados', value: data.sensors, icon: 'sensors', tone: 'blue', change: 'Monitoreo del campo' },
+    { label: 'Alertas de sensores', value: data.alerts, icon: 'notifications_active', tone: 'red', change: 'Requieren atención' }
+  ];
 });
 
-const chartPoints = (values) => values.map((value, index) => `${index * 36},${110 - value}`).join(' ');
+onMounted(() => {
+  try {
+    platform.loadDashboard(auth.user.role);
+  } catch (error) {
+    $q.notify({ type: 'negative', message: error.message || 'No se pudo cargar el resumen.' });
+  }
+});
 </script>
 
 <template>
   <div class="dashboard-page">
     <div class="page-heading">
-      <div><div class="eyebrow">JUEVES, 15 DE OCTUBRE</div><h1>Resumen general</h1><p>Esto es lo que ocurre hoy en tus terrenos.</p></div>
-      <q-btn outline no-caps icon="calendar_today" label="Últimos 7 días" class="date-button" />
+      <div>
+        <div class="eyebrow">{{ today.toLocaleUpperCase('es-CO') }}</div>
+        <h1>Hola, {{ auth.user?.name?.split(' ')[0] }}</h1>
+        <p>Este es tu espacio de trabajo como {{ auth.user?.role }}.</p>
+      </div>
+      <q-badge class="role-badge" color="green-1" text-color="primary"><q-icon name="verified_user" /> {{ auth.user?.role }}</q-badge>
     </div>
 
-    <div v-if="dashboard.loading && !dashboard.summary" class="row q-col-gutter-md">
-      <div v-for="n in 4" :key="n" class="col-12 col-sm-6 col-xl-3"><q-skeleton height="136px" class="rounded-borders" /></div>
+    <div class="row q-col-gutter-md dashboard-stats">
+      <div v-for="card in cards" :key="card.label" class="col-12 col-sm-6 col-xl-3">
+        <q-card flat bordered class="stat-card" :class="`stat-card--${card.tone}`">
+          <div class="stat-card__top"><span>{{ card.label }}</span><div class="stat-card__icon" :class="`tone-${card.tone}`"><q-icon :name="card.icon" /></div></div>
+          <div class="stat-card__value">{{ card.value }}</div>
+          <div class="stat-card__change">{{ card.change }}</div>
+        </q-card>
+      </div>
     </div>
-    <template v-else-if="dashboard.summary">
+
+    <section class="workspace-section">
+      <div class="section-heading">
+        <div><h2>Tu espacio de trabajo</h2><p>Módulos disponibles para tu perfil</p></div>
+      </div>
       <div class="row q-col-gutter-md">
-        <div class="col-12 col-sm-6 col-xl-3"><StatCard label="Humedad del suelo" :value="dashboard.summary.kpis.soilMoisture" unit="%" change="↑ 4.2% vs. semana anterior" icon="water_drop" /></div>
-        <div class="col-12 col-sm-6 col-xl-3"><StatCard label="Temperatura ambiente" :value="dashboard.summary.kpis.temperature" unit="°C" change="Dentro del rango ideal" icon="device_thermostat" tone="gold" /></div>
-        <div class="col-12 col-sm-6 col-xl-3"><StatCard label="Sensores activos" :value="`${dashboard.summary.kpis.activeSensors}/${dashboard.summary.kpis.totalSensors}`" change="Todos los sistemas en línea" icon="sensors" tone="blue" /></div>
-        <div class="col-12 col-sm-6 col-xl-3"><StatCard label="Alertas pendientes" :value="dashboard.summary.kpis.alerts" change="1 requiere atención" icon="notifications_active" tone="red" /></div>
-      </div>
-
-      <div class="row q-col-gutter-md q-mt-sm">
-        <div class="col-12 col-xl-8">
-          <q-card flat bordered class="content-card chart-card">
-            <div class="section-heading"><div><h2>Tendencia de humedad</h2><p>Promedio de tus terrenos</p></div><q-btn flat round dense icon="more_horiz" /></div>
-            <div class="chart-legend"><span class="legend-dot"></span> Humedad del suelo <span class="legend-note">· Últimos 7 días</span></div>
-            <div class="chart-wrap">
-              <div class="chart-axis"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div>
-              <svg class="line-chart" viewBox="0 0 396 120" preserveAspectRatio="none" role="img" aria-label="Gráfico de tendencia de humedad">
-                <line v-for="y in [10, 35, 60, 85, 110]" :key="y" x1="0" :y1="y" x2="396" :y2="y" class="chart-grid" />
-                <polyline :points="chartPoints(dashboard.summary.moistureHistory)" class="chart-line" />
-              </svg>
-            </div>
-            <div class="chart-labels"><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span></div>
-          </q-card>
-        </div>
-        <div class="col-12 col-xl-4">
-          <q-card flat bordered class="content-card alerts-card">
-            <div class="section-heading"><div><h2>Alertas recientes</h2><p>Actualizaciones de tus terrenos</p></div><q-btn flat dense no-caps label="Ver todas" color="primary" /></div>
-            <div v-for="alert in dashboard.summary.alerts" :key="alert.id" class="alert-row">
-              <div class="alert-icon" :class="`alert-${alert.severity}`"><q-icon :name="alert.severity === 'warning' ? 'water_drop' : 'check_circle'" /></div>
-              <div class="alert-copy"><strong>{{ alert.title }}</strong><p>{{ alert.description }}</p><span>{{ alert.time }}</span></div>
-            </div>
+        <div v-for="module in availableModules" :key="module.id" class="col-12 col-sm-6 col-lg-4">
+          <q-card flat bordered class="module-shortcut" :to="module.path" clickable>
+            <div class="module-shortcut__icon"><q-icon :name="module.icon" /></div>
+            <div class="module-shortcut__copy"><strong>{{ module.label }}</strong><span>{{ module.description }}</span></div>
+            <q-icon class="module-shortcut__arrow" name="arrow_forward" />
           </q-card>
         </div>
       </div>
+    </section>
 
-      <q-card flat bordered class="content-card terrains-preview">
-        <div class="section-heading"><div><h2>Mis terrenos</h2><p>Estado general de tus parcelas</p></div><q-btn to="/terrenos" flat no-caps color="primary" label="Ver terrenos" icon-right="arrow_forward" /></div>
-        <div class="row q-col-gutter-md">
-          <div v-for="field in dashboard.summary.terrains" :key="field.id" class="col-12 col-md-4">
-            <div class="terrain-mini">
-              <div class="terrain-mini__icon"><q-icon name="landscape" /></div>
-              <div class="terrain-mini__heading"><strong>{{ field.name }}</strong><q-badge :color="field.status === 'Saludable' ? 'green-1' : 'orange-1'" :text-color="field.status === 'Saludable' ? 'positive' : 'warning'">{{ field.status }}</q-badge></div>
-              <span>{{ field.location }} · {{ field.areaHa }} ha</span>
-              <div class="terrain-mini__stats"><span><q-icon name="water_drop" /> {{ field.moisture }}%</span><span><q-icon name="thermostat" /> {{ field.temperature }}°C</span></div>
-            </div>
-          </div>
+    <section v-if="platform.dashboard?.recentFarms?.length" class="workspace-section">
+      <div class="section-heading">
+        <div><h2>Fincas recientes</h2><p>Acceso rápido a los detalles de tus propiedades.</p></div>
+        <q-btn flat no-caps color="primary" label="Ver todas" to="/terrenos" />
+      </div>
+      <div class="row q-col-gutter-md">
+        <div v-for="farm in platform.dashboard.recentFarms" :key="farm.id" class="col-12 col-md-4">
+          <q-card flat bordered class="farm-summary-card">
+            <div class="farm-summary-card__icon"><q-icon name="landscape" /></div>
+            <div class="farm-summary-card__name">{{ farm.name }}</div>
+            <div class="farm-summary-card__location">{{ farm.location }} · {{ farm.areaHa }} ha</div>
+            <q-btn flat dense no-caps color="primary" label="Ver detalles" :to="{ name: 'farms', query: { detail: farm.id } }" />
+          </q-card>
         </div>
-      </q-card>
-    </template>
+      </div>
+    </section>
   </div>
 </template>

@@ -1,63 +1,63 @@
 # AgroSmart
 
-Plataforma de agricultura inteligente con frontend Vue 3 + Quasar y API Node.js + Express. Esta primera etapa utiliza datos mock persistidos localmente en JSON; la API se comunica con una capa de repositorio para facilitar el reemplazo por MongoDB sin acoplar los controladores al almacenamiento.
+Aplicación responsive para administrar una operación agrícola con Vue 3, Quasar y Pinia. La plataforma funciona en esta fase con un backend lógico simulado en el navegador y persistencia en `localStorage`; no necesita MongoDB ni el servidor Express para guardar su información de demostración.
 
-## Estructura
+## Arquitectura
 
 ```text
 AgroSmart/
 ├── apps/
-│   ├── api/
+│   ├── web/
 │   │   └── src/
-│   │       ├── config/          # Variables de entorno
-│   │       ├── controllers/     # Validación y respuestas HTTP
-│   │       ├── data/            # Datos iniciales de demostración
-│   │       ├── middleware/      # JWT, roles y errores
-│   │       ├── repositories/    # Adaptador de persistencia JSON (sustituible por Mongo)
-│   │       ├── routes/          # Rutas versionables de la API
-│   │       ├── services/        # Autenticación y lógica de negocio
-│   │       └── utils/
-│   └── web/
-│       └── src/
-│           ├── api/             # Cliente Axios
-│           ├── components/      # Componentes Quasar reutilizables
-│           ├── css/
-│           ├── layouts/
-│           ├── pages/
-│           ├── router/
-│           └── stores/          # Estado Pinia
-├── package.json
-└── README.md
+│   │       ├── backend/
+│   │       │   ├── controllers/  # Coordinación de acciones locales
+│   │       │   ├── data/         # Datos de demostración y sesión local
+│   │       │   ├── models/       # Roles, permisos y esquemas de módulos
+│   │       │   ├── repositories/ # Persistencia en LocalStorage
+│   │       │   ├── routes/       # Fachada local para la UI
+│   │       │   └── services/     # Autenticación y reglas de negocio
+│   │       ├── components/       # Componentes Quasar reutilizables
+│   │       ├── layouts/
+│   │       ├── pages/
+│   │       ├── router/           # Rutas y guardas por rol
+│   │       └── stores/           # Estado Pinia
+│   └── api/                      # API Express modular de referencia
+└── package.json
 ```
 
-## Inicio rápido
+La UI llama a `backend/routes/localApi.js`, no a la API HTTP. Los controladores y servicios dependen del repositorio local, de modo que la capa de persistencia puede sustituirse al conectar una API real.
+
+## Iniciar la aplicación
 
 Requiere Node.js 20 o posterior.
 
 ```powershell
 npm install
-Copy-Item apps\api\.env.example apps\api\.env
 npm run dev
 ```
 
-La interfaz estará en `http://localhost:9000` y la API en `http://localhost:3000/api`. En desarrollo se crea la cuenta de demostración `demo@agrosmart.com` con contraseña `AgroSmart2026!` si aún no existe. El servidor de desarrollo debe usar el secreto de JWT predeterminado solo en local.
+Abre `http://localhost:9000`. La API Express de referencia se inicia también en `http://localhost:3000/api`; la aplicación local puede seguir operando aunque esa API no esté disponible. La configuración de Vite reenvía `/api` a Express para las futuras pantallas conectadas a HTTP.
 
-Para la API en producción, configura `JWT_SECRET` con un secreto aleatorio de al menos 32 caracteres. El archivo de datos se crea por defecto en `apps/api/data/agrosmart.json`; `DATA_FILE` permite cambiar su ubicación.
+## Crear cuenta e iniciar sesión
 
-## API inicial
+Cada usuario debe crear una cuenta antes de iniciar sesión. En la pantalla de acceso, selecciona **Crear cuenta**, elige uno de los cuatro perfiles y registra su nombre, correo y contraseña. Después vuelve a **Iniciar sesión** y usa esas mismas credenciales y perfil. No hay cuentas de demostración ni credenciales precargadas.
 
-- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
-- `GET /api/dashboard`
-- `GET /api/terrains`, `GET /api/crops`, `GET /api/sensors` con `page` y `limit`
-- `POST /api/terrains` y `PATCH /api/terrains/:id` (roles `Admin` y `SuperAdmin`)
+Se impide mantener sesiones activas simultáneas para la misma cuenta o perfil. Cierra sesión desde el icono del usuario para liberar el acceso. El cierre borra las claves de sesión, pero conserva las cuentas registradas y los datos de la plataforma.
 
-Las rutas privadas requieren `Authorization: Bearer <token>`. El registro está disponible desde `/registro` y siempre asigna el rol `Usuario`; los privilegios administrativos nunca se aceptan desde el cuerpo del cliente.
+## Módulos por perfil
 
-## Seguridad y evolución
+- **Administrador:** todos los módulos, gestión de usuarios y reportes.
+- **Trabajador / Operario:** fincas, cultivos, actividades, tareas, cosechas y novedades.
+- **Ingeniero agrónomo / Técnico:** fincas, cultivos, sensores, actividades, recomendaciones y plagas/enfermedades.
+- **Contador / Encargado financiero:** gastos, ingresos y costos de producción.
 
-Las contraseñas se almacenan con bcrypt y el token no contiene credenciales. En este prototipo el token de sesión se conserva en `localStorage` para mantener la sesión; localStorage es accesible desde JavaScript y no es adecuado frente a XSS en producción. Para el despliegue, se recomienda migrar a cookies `HttpOnly`, `Secure` y `SameSite`, además de aplicar TLS y una política CSP.
+Las rutas también verifican el perfil; no basta con ocultar opciones del menú. Cada finca muestra coordenadas y los cultivos/sensores relacionados que puede consultar el perfil actual.
 
-`JsonRepository` es un adaptador de demostración, no una base transaccional multiusuario. Las operaciones se serializan en un archivo JSON; al conectar MongoDB, implementa la misma interfaz con esquemas e índices, y utiliza sesiones/transacciones de MongoDB allí donde una operación abarque varias escrituras. Los errores HTTP 5xx se registran en servidor y se responden sin detalles internos.
+## Persistencia y formularios
+
+Los registros se almacenan bajo `agrosmart.local.data.v1`; las sesiones y bloqueos se guardan por separado. Los formularios de alta validan campos obligatorios y comunican errores o confirmaciones; las tarjetas actualizan su contenido inmediatamente después de guardar. La gestión de usuarios permite registrar perfiles y guarda la contraseña con PBKDF2, no en texto plano.
+
+`localStorage` es modificable por el usuario y accesible desde JavaScript; por ello, esta autorización de frontend es solo para demostración y no protege información sensible. Para producción, mueve autenticación, permisos y persistencia a un servidor confiable; usa cookies `HttpOnly`, `Secure`, `SameSite`, TLS y controles de seguridad del servidor.
 
 ## Verificación
 
