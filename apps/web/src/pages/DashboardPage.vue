@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted } from 'vue';
 import { useQuasar } from 'quasar';
-import { MODULES } from '../backend/models/modules';
+import { MODULES, WORKER_MODULES } from '../backend/models/modules';
 import { ROLES } from '../backend/models/roles';
 import { useAuthStore } from '../stores/auth';
 import { usePlatformStore } from '../stores/platform';
@@ -10,7 +10,10 @@ const auth = useAuthStore();
 const platform = usePlatformStore();
 const $q = useQuasar();
 const today = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
-const availableModules = computed(() => MODULES.filter((item) => item.roles.includes(auth.user?.role) || auth.user?.role === ROLES.ADMIN));
+const availableModules = computed(() => {
+  if (auth.user?.role === ROLES.WORKER) return WORKER_MODULES;
+  return MODULES.filter((item) => item.roles.includes(auth.user?.role) || auth.user?.role === ROLES.ADMIN);
+});
 
 const cards = computed(() => {
   const data = platform.dashboard || {};
@@ -62,7 +65,7 @@ onMounted(() => {
       <div>
         <div class="eyebrow">{{ today.toLocaleUpperCase('es-CO') }}</div>
         <h1>Hola, {{ auth.user?.name?.split(' ')[0] }}</h1>
-        <p>Este es tu espacio de trabajo como {{ auth.user?.role }}.</p>
+        <p>Este es tu espacio de trabajo como {{ auth.user?.role }}.<span v-if="auth.user?.role === ROLES.WORKER"> Accede a tus 4 módulos operativos desde los accesos directos.</span></p>
       </div>
       <q-badge class="role-badge" color="green-1" text-color="primary"><q-icon name="verified_user" /> {{ auth.user?.role }}</q-badge>
     </div>

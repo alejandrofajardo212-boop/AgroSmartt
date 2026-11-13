@@ -4,7 +4,7 @@ import { LocalStorageRepository } from '../src/backend/repositories/localStorage
 import { LocalAuthService, SessionConflictError } from '../src/backend/services/authService.js';
 import { EMPTY_FIELDS_ERROR, PlatformService } from '../src/backend/services/platformService.js';
 import { ROLES } from '../src/backend/models/roles.js';
-import { ACTIVE_SESSIONS_KEY, SESSION_KEY } from '../src/backend/data/mockData.js';
+import { ACTIVE_SESSIONS_KEY, SESSION_KEY, mockData } from '../src/backend/data/mockData.js';
 
 class MemoryStorage {
   values = new Map();
@@ -63,6 +63,22 @@ test('legacy demo sessions are rejected unless the account is registered', () =>
   }]));
 
   assert.equal(new LocalAuthService(storage).getSession(), null);
+});
+
+test('demo accounts log in with the role name followed by 2026', async () => {
+  const storage = new MemoryStorage();
+  const auth = new LocalAuthService(storage);
+
+  for (const user of mockData.users) {
+    const session = await auth.login({
+      email: user.email,
+      password: `${user.role}2026`,
+      role: user.role
+    });
+
+    assert.equal(session.user.email, user.email);
+    auth.logout();
+  }
 });
 
 test('platform validates required fields and enforces module roles', () => {

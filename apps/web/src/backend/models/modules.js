@@ -104,3 +104,9 @@ export const MODULES = [
 ];
 
 export const MODULE_BY_ID = Object.fromEntries(MODULES.map((module) => [module.id, module]));
+
+/** IDs de los 4 módulos exclusivos del rol Trabajador / Operario */
+export const WORKER_MODULE_IDS = ['activities', 'tasks', 'harvests', 'news'];
+
+/** Módulos filtrados para el Trabajador (en el orden del menú operario) */
+export const WORKER_MODULES = WORKER_MODULE_IDS.map((id) => MODULE_BY_ID[id]);

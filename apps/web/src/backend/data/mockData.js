@@ -4,7 +4,40 @@ export const ACTIVE_SESSIONS_KEY = 'agrosmart.local.active-sessions.v1';
 export const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
 export const mockData = {
-  users: [],
+  users: [
+    {
+      "id": "245875db-cfaf-4a0c-aa72-d6f742e678df",
+      "name": "Admin AgroSmart",
+      "email": "admin@agrosmart.com",
+      "role": "Administrador",
+      "passwordHash": "06d3c4932db3d753019aff40c97e792ec4e85a59fe252420a223037ec3e0cd84",
+      "passwordSalt": "25a8f08bf00969b0f8cad82b92e87961"
+    },
+    {
+      "id": "16e361a6-5799-4f69-903d-2d7a9e5abf7f",
+      "name": "Carlos Ramírez",
+      "email": "operario@agrosmart.com",
+      "role": "Trabajador / Operario",
+      "passwordHash": "27dd8cf13b7e9785566d3e10fae7495cadd2d48dab39f800c4bbb03c1c77a31a",
+      "passwordSalt": "a103df6243863340bb6f5a2eb3d87d48"
+    },
+    {
+      "id": "56ec1a50-8e80-4647-8d42-e0532896ad50",
+      "name": "Dra. Laura Méndez",
+      "email": "agronomo@agrosmart.com",
+      "role": "Ingeniero agrónomo / Técnico",
+      "passwordHash": "c01f31e0edd0d48887a343cce1af5ba21de816be138b0345fb456d15e4c8c103",
+      "passwordSalt": "290ebc837e07681f9b1f71333be126cb"
+    },
+    {
+      "id": "5db5669f-5d38-449c-b702-acb06042ab24",
+      "name": "Contadora Financiera",
+      "email": "contador@agrosmart.com",
+      "role": "Contador / Encargado financiero",
+      "passwordHash": "9ecede190e7593fda5b595d4ab06a36d4ffdb207551a8c94156b0e2dd7da770b",
+      "passwordSalt": "3004c2cb5c996d3d79104bd6da6dd3c3"
+    }
+  ],
   farms: [
     { id: 'farm-1', name: 'Finca El Paraíso', location: 'La Ramada, Cundinamarca', areaHa: 12.5, latitude: 4.711, longitude: -74.0721, status: 'Saludable' },
     { id: 'farm-2', name: 'Lote Norte', location: 'Chía, Cundinamarca', areaHa: 8.2, latitude: 4.861, longitude: -74.033, status: 'Requiere atención' },

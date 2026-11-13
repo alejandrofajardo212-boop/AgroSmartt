@@ -18,5 +18,10 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": true,
+    "esbuild@0.25.12": true,
+    "vue-demi@0.14.10": true
   }
 }
