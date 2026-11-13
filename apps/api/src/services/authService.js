@@ -1,8 +1,13 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { randomUUID } from 'node:crypto';
+import { pbkdf2, randomUUID, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 import { env } from '../config/env.js';
 import { HttpError } from '../utils/httpError.js';
+import { SEED_USERS, SEED_USER_EMAILS } from '../../../shared/seedUsers.js';
+
+const deriveSeedHash = promisify(pbkdf2);
+const SEED_PASSWORD_ITERATIONS = 120000;
 
 export class AuthService {
   constructor(repository) {
@@ -10,14 +15,15 @@ export class AuthService {
   }
 
   async register({ name, email, password }) {
-    if (this.repository.findUserByEmail(email)) {
+    const normalizedEmail = email.toLowerCase();
+    if (SEED_USER_EMAILS.has(normalizedEmail) || this.repository.findUserByEmail(normalizedEmail)) {
       throw new HttpError(409, 'Ya existe una cuenta con ese correo electrónico.');
     }
 
     const user = {
       id: randomUUID(),
       name,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       passwordHash: await bcrypt.hash(password, 12),
       role: 'Usuario'
     };
@@ -25,9 +31,24 @@ export class AuthService {
     return this.createSession(user);
   }
 
-  async login({ email, password }) {
-    const user = this.repository.findUserByEmail(email);
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  async login({ email, password, role }) {
+    const normalizedEmail = email.toLowerCase();
+    const seedUser = SEED_USERS.find((account) => account.email === normalizedEmail);
+    if (seedUser) {
+      const actualHash = await deriveSeedHash(password, seedUser.passwordSalt, SEED_PASSWORD_ITERATIONS, 32, 'sha256');
+      const expectedHash = Buffer.from(seedUser.passwordHash, 'hex');
+      if (
+        (role && role !== seedUser.role)
+        || actualHash.length !== expectedHash.length
+        || !timingSafeEqual(actualHash, expectedHash)
+      ) {
+        throw new HttpError(401, 'Correo electrónico o contraseña incorrectos.');
+      }
+      return this.createSession(seedUser);
+    }
+
+    const user = this.repository.findUserByEmail(normalizedEmail);
+    if (!user || (role && role !== user.role) || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new HttpError(401, 'Correo electrónico o contraseña incorrectos.');
     }
     return this.createSession(user);

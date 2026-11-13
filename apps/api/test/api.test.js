@@ -50,6 +50,36 @@ test('registration creates a regular-user session and protects private routes', 
   assert.equal(forbiddenResponse.status, 403);
 });
 
+test('all four seed accounts can sign in without being persisted in the repository', async () => {
+  const credentials = [
+    ['admin@agrosmart.com', 'Admin2026!', 'Administrador'],
+    ['operario@agrosmart.com', 'Operario2026!', 'Trabajador / Operario'],
+    ['agronomo@agrosmart.com', 'Agronomo2026!', 'Ingeniero agrónomo / Técnico'],
+    ['contador@agrosmart.com', 'Contador2026!', 'Contador / Encargado financiero']
+  ];
+
+  for (const [email, password, role] of credentials) {
+    const response = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email, password, role })
+    });
+
+    assert.equal(response.status, 200);
+    const session = await response.json();
+    assert.equal(session.user.email, email);
+    assert.equal(session.user.role, role);
+    assert.ok(session.token);
+
+    const currentUser = await fetch(`${baseUrl}/auth/me`, {
+      headers: { authorization: `Bearer ${session.token}` }
+    });
+    assert.equal((await currentUser.json()).user.email, email);
+  }
+
+  for (const [email] of credentials) assert.equal(repository.findUserByEmail(email), null);
+});
+
 test('public registration cannot grant administrator access', async () => {
   const response = await fetch(`${baseUrl}/auth/register`, {
     method: 'POST',
