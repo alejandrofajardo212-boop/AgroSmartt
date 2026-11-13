@@ -1,4 +1,5 @@
 import { mockData, STORAGE_KEY } from '../data/mockData.js';
+import { SEED_USER_EMAILS } from '../../../../shared/seedUsers.js';
 
 export class LocalStorageRepository {
   constructor(storage = globalThis.localStorage) {
@@ -27,6 +28,7 @@ export class LocalStorageRepository {
           user
           && typeof user.passwordHash === 'string'
           && typeof user.passwordSalt === 'string'
+          && !SEED_USER_EMAILS.has(user.email)
         );
       }
       return state;
