@@ -228,3 +228,24 @@ test('new accounts can register with a selected role and sign in', async () => {
   assert.equal(session.user.id, user.id);
   auth.logout();
 });
+
+test('accounts for all four roles can register and sign in to their role', async () => {
+  const auth = new LocalAuthService(new MemoryStorage());
+
+  for (const [index, role] of Object.values(ROLES).entries()) {
+    const user = await auth.registerAccount({
+      name: `Usuario ${index + 1}`,
+      email: `usuario${index + 1}@agrosmart.com`,
+      password: 'Cosecha2026!',
+      role
+    });
+    const session = await auth.login({
+      email: user.email,
+      password: 'Cosecha2026!',
+      role
+    });
+
+    assert.equal(session.user.role, role);
+    auth.logout();
+  }
+});

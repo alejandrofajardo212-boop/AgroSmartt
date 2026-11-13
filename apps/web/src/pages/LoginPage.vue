@@ -73,13 +73,24 @@ async function submit() {
 
 <template>
   <main class="login-page">
+    <section class="login-visual">
+      <div class="login-visual__shade"></div>
+      <div class="login-visual__content">
+        <BrandMark />
+        <div class="visual-copy">
+          <span class="eyebrow">TECNOLOGÍA QUE CULTIVA FUTURO</span>
+          <h1>Tu campo,<br /><em>en equilibrio.</em></h1>
+          <p>Conectamos tus cultivos con decisiones más inteligentes.</p>
+        </div>
+        <div class="visual-footer"><span>01</span><span class="footer-line"></span><span>AGRICULTURA DE PRECISIÓN</span></div>
+      </div>
+    </section>
     <section class="login-panel">
       <div class="login-card">
-        <p class="login-welcome">{{ isRegistering ? 'Únete a' : 'Bienvenido a' }}</p>
-        <div class="login-brand"><BrandMark /></div>
-        <p class="login-tagline">Tu campo, en equilibrio.</p>
+        <div class="login-brand-mobile"><BrandMark /></div>
+        <p class="eyebrow text-primary">{{ isRegistering ? 'ÚNETE A AGROSMART' : 'BIENVENIDO DE NUEVO' }}</p>
         <h2>{{ isRegistering ? 'Crea tu cuenta' : 'Inicia sesión' }}</h2>
-        <p class="login-subtitle">{{ isRegistering ? 'Elige tu perfil y comienza a cultivar mejores resultados.' : 'Crea tu cuenta primero o ingresa con una cuenta registrada.' }}</p>
+        <p class="login-subtitle">{{ isRegistering ? 'Registra tu cuenta y elige uno de los cuatro roles.' : 'Ingresa con la cuenta registrada para tu perfil.' }}</p>
         <div class="login-mode" role="group" aria-label="Acceso a AgroSmart">
           <button type="button" class="login-mode__button" :aria-pressed="!isRegistering" :class="{ 'login-mode__button--active': !isRegistering }" @click="setMode(false)">Iniciar sesión</button>
           <button type="button" class="login-mode__button" :aria-pressed="isRegistering" :class="{ 'login-mode__button--active': isRegistering }" @click="setMode(true)">Crear cuenta</button>
@@ -121,7 +132,7 @@ async function submit() {
           </template>
           <q-btn type="submit" :label="isRegistering ? 'Crear cuenta en AgroSmart' : 'Iniciar sesión'" unelevated no-caps class="full-width login-submit" :loading="loading" />
         </q-form>
-        <div class="login-footnote"><q-icon name="shield" /> {{ isRegistering ? 'Después de registrarte, inicia sesión con tu cuenta' : 'Solo pueden ingresar cuentas registradas' }}</div>
+        <div class="login-footnote"><q-icon name="shield" /> {{ isRegistering ? 'Después del registro, inicia sesión con tu cuenta' : 'Acceso disponible para los cuatro roles registrados' }}</div>
       </div>
     </section>
   </main>
