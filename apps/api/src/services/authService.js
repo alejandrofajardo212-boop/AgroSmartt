@@ -9,12 +9,25 @@ import { SEED_USERS, SEED_USER_EMAILS } from '../../../shared/seedUsers.js';
 const deriveSeedHash = promisify(pbkdf2);
 const SEED_PASSWORD_ITERATIONS = 120000;
 
+/** Roles que pueden crear cuentas */
+export const ADMIN_ROLES = ['Administrador', 'SuperAdmin', 'Admin'];
+
+/** Roles que el administrador puede asignar a una cuenta nueva */
+export const ASSIGNABLE_ROLES = [
+  'Administrador',
+  'Trabajador / Operario',
+  'Ingeniero agrónomo / Técnico',
+  'Contador / Encargado financiero'
+];
+
 export class AuthService {
   constructor(repository) {
     this.repository = repository;
   }
 
-  async register({ name, email, password }) {
+  /** Crea una cuenta con el rol que asigna el administrador. Devuelve el usuario sin la contraseña. */
+  async register({ name, email, password, role }) {
+    if (!ASSIGNABLE_ROLES.includes(role)) throw new HttpError(400, 'El rol seleccionado no está permitido.');
     const normalizedEmail = email.toLowerCase();
     if (SEED_USER_EMAILS.has(normalizedEmail) || this.repository.findUserByEmail(normalizedEmail)) {
       throw new HttpError(409, 'Ya existe una cuenta con ese correo electrónico.');
@@ -25,10 +38,10 @@ export class AuthService {
       name,
       email: normalizedEmail,
       passwordHash: await bcrypt.hash(password, 12),
-      role: 'Usuario'
+      role
     };
     await this.repository.insert('users', user);
-    return this.createSession(user);
+    return { id: user.id, name: user.name, email: user.email, role: user.role };
   }
 
   async login({ email, password, role }) {

@@ -77,10 +77,6 @@ export class LocalAuthService {
     return this.saveUser({ name, email, password, role });
   }
 
-  async registerAccount({ name, email, password, role }) {
-    return this.saveUser({ name, email, password, role });
-  }
-
   async saveUser({ name, email, password, role }) {
     if (![name, email, password, role].every((value) => String(value ?? '').trim())) {
       throw new Error('Error: No llenaste todos los campos del formulario');

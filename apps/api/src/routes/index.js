@@ -4,13 +4,15 @@ import { createAuthController } from '../controllers/authController.js';
 import { createResourceController } from '../controllers/resourceController.js';
 import { createWorkerController } from '../controllers/workerController.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
+import { ADMIN_ROLES } from '../services/authService.js';
 
 export function createApiRouter(repository) {
   const router = Router();
   const auth = createAuthController(repository);
 
   // ── Autenticación ─────────────────────────────────────────────────────────
-  router.post('/auth/register', asyncHandler(auth.register));
+  // Solo un administrador con sesión iniciada puede crear cuentas (no hay registro público)
+  router.post('/auth/register', authenticate, authorize(...ADMIN_ROLES), asyncHandler(auth.register));
   router.post('/auth/login',    asyncHandler(auth.login));
   router.get('/auth/me',        authenticate, asyncHandler(auth.me));
 

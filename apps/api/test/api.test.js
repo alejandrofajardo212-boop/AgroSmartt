@@ -25,29 +25,60 @@ after(async () => {
   await rm(directory, { recursive: true, force: true });
 });
 
-test('registration creates a regular-user session and protects private routes', async () => {
-  const response = await fetch(`${baseUrl}/auth/register`, {
+async function loginAs(email, password, role) {
+  const response = await fetch(`${baseUrl}/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name: 'Usuario Demo', email: 'demo@test.com', password: 'password123' })
+    body: JSON.stringify({ email, password, role })
   });
+  return (await response.json()).token;
+}
+
+function register(body, token) {
+  return fetch(`${baseUrl}/auth/register`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify(body)
+  });
+}
+
+test('el registro sin sesión está bloqueado', async () => {
+  const response = await register({ name: 'Intruso', email: 'intruso@test.com', password: 'password123', role: 'Administrador' });
+  assert.equal(response.status, 401);
+  assert.equal(repository.findUserByEmail('intruso@test.com'), null);
+});
+
+test('un usuario que no es administrador no puede crear cuentas', async () => {
+  const token = await loginAs('operario@agrosmart.com', 'Operario2026!', 'Trabajador / Operario');
+  const response = await register({ name: 'Intruso', email: 'intruso2@test.com', password: 'password123', role: 'Administrador' }, token);
+  assert.equal(response.status, 403);
+  assert.equal(repository.findUserByEmail('intruso2@test.com'), null);
+});
+
+test('el administrador crea una cuenta con rol y esa cuenta inicia sesión', async () => {
+  const token = await loginAs('admin@agrosmart.com', 'Admin2026!', 'Administrador');
+  const response = await register({ name: 'Usuario Demo', email: 'demo@test.com', password: 'password123', role: 'Trabajador / Operario' }, token);
   assert.equal(response.status, 201);
-  const session = await response.json();
-  assert.equal(session.user.role, 'Usuario');
-  assert.ok(session.token);
+  const { user } = await response.json();
+  assert.equal(user.role, 'Trabajador / Operario');
+  assert.equal(Object.hasOwn(user, 'passwordHash'), false);
 
-  const privateResponse = await fetch(`${baseUrl}/terrains`, {
-    headers: { authorization: `Bearer ${session.token}` }
-  });
+  const newToken = await loginAs('demo@test.com', 'password123', 'Trabajador / Operario');
+  assert.ok(newToken);
+  const privateResponse = await fetch(`${baseUrl}/terrains`, { headers: { authorization: `Bearer ${newToken}` } });
   assert.equal(privateResponse.status, 200);
-  assert.ok((await privateResponse.json()).items.length > 0);
-
   const forbiddenResponse = await fetch(`${baseUrl}/terrains`, {
     method: 'POST',
-    headers: { authorization: `Bearer ${session.token}`, 'content-type': 'application/json' },
+    headers: { authorization: `Bearer ${newToken}`, 'content-type': 'application/json' },
     body: JSON.stringify({ name: 'Nuevo lote', location: 'Chía', areaHa: 2 })
   });
   assert.equal(forbiddenResponse.status, 403);
+});
+
+test('el administrador no puede asignar un rol inventado', async () => {
+  const token = await loginAs('admin@agrosmart.com', 'Admin2026!', 'Administrador');
+  const response = await register({ name: 'Nuevo Usuario', email: 'new@test.com', password: 'password123', role: 'SuperAdmin' }, token);
+  assert.equal(response.status, 400);
 });
 
 test('all four seed accounts can sign in without being persisted in the repository', async () => {
@@ -78,16 +109,6 @@ test('all four seed accounts can sign in without being persisted in the reposito
   }
 
   for (const [email] of credentials) assert.equal(repository.findUserByEmail(email), null);
-});
-
-test('public registration cannot grant administrator access', async () => {
-  const response = await fetch(`${baseUrl}/auth/register`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name: 'Nuevo Usuario', email: 'new@test.com', password: 'password123', role: 'SuperAdmin' })
-  });
-  assert.equal(response.status, 201);
-  assert.equal((await response.json()).user.role, 'Usuario');
 });
 
 test('invalid input returns a generic client error', async () => {

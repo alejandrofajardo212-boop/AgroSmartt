@@ -49,7 +49,7 @@ Hay cuatro cuentas de demostración disponibles sin registrar usuarios ni guarda
 | Ingeniero agrónomo / Técnico | `agronomo@agrosmart.com` | `Agronomo2026!` |
 | Contador / Encargado financiero | `contador@agrosmart.com` | `Contador2026!` |
 
-Las cuentas semilla y sus hashes viven en `apps/shared/seedUsers.js`; las contraseñas no se almacenan allí en texto plano. Las cuentas nuevas creadas desde la pantalla **Crear cuenta** sí se guardan en `localStorage` hasta conectar una base de datos.
+Las cuentas semilla y sus hashes viven en `apps/shared/seedUsers.js`; las contraseñas no se almacenan allí en texto plano. No hay registro público: **solo el Administrador crea cuentas**, desde el módulo **Usuarios**, y les asigna su rol (Administrador, Trabajador / Operario, Ingeniero agrónomo / Técnico o Contador / Encargado financiero) con una contraseña temporal. Estas cuentas se guardan en `localStorage` hasta conectar una base de datos. En la API, `POST /api/auth/register` exige una sesión de administrador (token `Bearer`) y un `role` válido.
 
 Se impide mantener sesiones activas simultáneas para la misma cuenta o perfil. Cierra sesión desde el icono del usuario para liberar el acceso. El cierre borra las claves de sesión, pero conserva las cuentas registradas y los datos de la plataforma.
 

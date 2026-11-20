@@ -1,5 +1,6 @@
 import { MODULES, MODULE_BY_ID } from '../models/modules.js';
 import { canAccessModule, ROLE_OPTIONS } from '../models/roles.js';
+import { SEED_USERS } from '../../../../shared/seedUsers.js';
 
 const EMPTY_FIELDS_ERROR = 'Error: No llenaste todos los campos del formulario';
 
@@ -11,15 +12,15 @@ export class PlatformService {
   list(moduleId, role) {
     this.assertAccess(moduleId, role);
     const items = this.repository.list(moduleId);
-    return moduleId === 'users'
-      ? items.map(({ passwordHash, passwordSalt, ...user }) => user)
-      : items;
+    if (moduleId !== 'users') return items;
+    // Las cuentas demo viven en apps/shared/seedUsers.js; se muestran junto a las creadas por el administrador
+    return [...SEED_USERS, ...items].map(({ passwordHash, passwordSalt, ...user }) => user);
   }
 
   searchRecords(role) {
     if (!ROLE_OPTIONS.includes(role)) throw new Error('El rol seleccionado no está permitido.');
     return MODULES
-      .filter((module) => canAccessModule(role, module.id))
+      .filter((module) => module.id !== 'users' && canAccessModule(role, module.id))
       .flatMap((module) => this.list(module.id, role).map((record) => ({
         moduleId: module.id,
         path: module.path,

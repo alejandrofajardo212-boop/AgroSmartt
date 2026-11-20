@@ -169,12 +169,12 @@ test('login requires a registered account and blocks a second active session for
     () => auth.login({ email: 'admin@agrosmart.com', password: 'Agro2026!', role: ROLES.ADMIN }),
     /Credenciales incorrectas/
   );
-  const user = await auth.registerAccount({
+  const user = await auth.createUser({
     name: 'Equipo AgroSmart',
     email: 'registered-admin@agrosmart.com',
     password: 'Agro2026!',
     role: ROLES.ADMIN
-  });
+  }, ROLES.ADMIN);
   const session = await auth.login({
     email: user.email,
     password: 'Agro2026!',
@@ -224,15 +224,15 @@ test('administrator creates accounts with hashed passwords that can sign in', as
   auth.logout();
 });
 
-test('new accounts can register with a selected role and sign in', async () => {
+test('el administrador crea una cuenta con su rol y esa cuenta puede iniciar sesión', async () => {
   const storage = new MemoryStorage();
   const auth = new LocalAuthService(storage);
-  const user = await auth.registerAccount({
+  const user = await auth.createUser({
     name: 'María Campo',
     email: 'maria@agrosmart.com',
     password: 'Cosecha2026!',
     role: ROLES.AGRONOMIST
-  });
+  }, ROLES.ADMIN);
 
   assert.equal(user.role, ROLES.AGRONOMIST);
   const session = await auth.login({
@@ -244,16 +244,16 @@ test('new accounts can register with a selected role and sign in', async () => {
   auth.logout();
 });
 
-test('accounts for all four roles can register and sign in to their role', async () => {
+test('el administrador puede crear cuentas de los cuatro roles y cada una inicia sesión', async () => {
   const auth = new LocalAuthService(new MemoryStorage());
 
   for (const [index, role] of Object.values(ROLES).entries()) {
-    const user = await auth.registerAccount({
+    const user = await auth.createUser({
       name: `Usuario ${index + 1}`,
       email: `usuario${index + 1}@agrosmart.com`,
       password: 'Cosecha2026!',
       role
-    });
+    }, ROLES.ADMIN);
     const session = await auth.login({
       email: user.email,
       password: 'Cosecha2026!',
@@ -298,4 +298,23 @@ test('los nombres de las cuentas demo y de los registros guardados están actual
   const repository = new LocalStorageRepository(storage);
   assert.equal(repository.list('activities')[0].assignedTo, 'Diego Fajardo');
   assert.equal(repository.list('news')[0].reportedBy, 'Juan Murillo');
+});
+
+test('no existe registro público: solo el administrador crea cuentas', async () => {
+  const auth = new LocalAuthService(new MemoryStorage());
+  assert.equal(typeof auth.registerAccount, 'undefined');
+  for (const role of [ROLES.WORKER, ROLES.AGRONOMIST, ROLES.ACCOUNTANT, undefined]) {
+    await assert.rejects(
+      () => auth.createUser({ name: 'Intruso', email: 'intruso@test.com', password: 'ClaveSegura2026', role: ROLES.ADMIN }, role),
+      /Solo el administrador/
+    );
+  }
+});
+
+test('el módulo Usuarios muestra las cuentas demo sin exponer contraseñas', () => {
+  const platform = new PlatformService(new LocalStorageRepository(new MemoryStorage()));
+  const users = platform.list('users', ROLES.ADMIN);
+  assert.equal(users.length, SEED_USERS.length);
+  assert.ok(users.every((user) => !('passwordHash' in user) && !('passwordSalt' in user)));
+  assert.throws(() => platform.list('users', ROLES.WORKER), /No tienes permisos/);
 });

@@ -19,10 +19,6 @@ export const useAuthStore = defineStore('auth', () => {
     session.value = await localApi.auth.login(credentials);
   }
 
-  async function registerAccount(values) {
-    return localApi.auth.registerAccount(values);
-  }
-
   function refreshSession() {
     try {
       session.value = localApi.auth.currentSession();
@@ -56,5 +52,5 @@ export const useAuthStore = defineStore('auth', () => {
     });
   }
 
-  return { session, user, isAuthenticated, authError, login, registerAccount, refreshSession, logout, clearAuthError };
+  return { session, user, isAuthenticated, authError, login, refreshSession, logout, clearAuthError };
 });

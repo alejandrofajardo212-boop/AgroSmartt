@@ -18,8 +18,4 @@ export class AuthController {
   createUser(values, actorRole) {
     return this.authService.createUser(values, actorRole);
   }
-
-  registerAccount(values) {
-    return this.authService.registerAccount(values);
-  }
 }
