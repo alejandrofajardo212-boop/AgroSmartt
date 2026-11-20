@@ -6,6 +6,7 @@ import { EMPTY_FIELDS_ERROR, PlatformService } from '../src/backend/services/pla
 import { ROLES, canAccessModule } from '../src/backend/models/roles.js';
 import { MODULES } from '../src/backend/models/modules.js';
 import { ACTIVE_SESSIONS_KEY, SESSION_KEY, STORAGE_KEY, mockData } from '../src/backend/data/mockData.js';
+import { SEED_USERS } from '../../shared/seedUsers.js';
 
 class MemoryStorage {
   values = new Map();
@@ -66,18 +67,23 @@ test('legacy demo sessions are rejected unless the account is registered', () =>
   assert.equal(new LocalAuthService(storage).getSession(), null);
 });
 
-test('demo accounts log in with the role name followed by 2026', async () => {
+test('four seed accounts can sign in without being stored as local users', async () => {
   const storage = new MemoryStorage();
   const auth = new LocalAuthService(storage);
+  const credentials = [
+    ['admin@agrosmart.com', 'Admin2026!', ROLES.ADMIN],
+    ['operario@agrosmart.com', 'Operario2026!', ROLES.WORKER],
+    ['agronomo@agrosmart.com', 'Agronomo2026!', ROLES.AGRONOMIST],
+    ['contador@agrosmart.com', 'Contador2026!', ROLES.ACCOUNTANT]
+  ];
 
-  for (const user of mockData.users) {
-    const session = await auth.login({
-      email: user.email,
-      password: `${user.role}2026`,
-      role: user.role
-    });
+  assert.equal(SEED_USERS.length, 4);
+  for (const [email, password, role] of credentials) {
+    const session = await auth.login({ email, password, role });
 
-    assert.equal(session.user.email, user.email);
+    assert.equal(session.user.email, email);
+    assert.equal(new LocalStorageRepository(storage).list('users').length, 0);
+    assert.equal(new LocalAuthService(storage).getSession().user.email, email);
     auth.logout();
   }
 });
@@ -165,7 +171,7 @@ test('login requires a registered account and blocks a second active session for
   );
   const user = await auth.registerAccount({
     name: 'Equipo AgroSmart',
-    email: 'admin@agrosmart.com',
+    email: 'registered-admin@agrosmart.com',
     password: 'Agro2026!',
     role: ROLES.ADMIN
   });
@@ -278,16 +284,18 @@ test('las notificaciones existen para los cuatro roles y respetan sus permisos',
   assert.ok(!platform.notifications(ROLES.WORKER).some((item) => item.moduleId === 'sensors'));
 });
 
-test('los nombres de las cuentas demo se actualizan en datos ya guardados', () => {
-  const storage = new MemoryStorage();
-  const old = structuredClone(mockData);
-  old.users.find((user) => user.email === 'contador@agrosmart.com').name = 'Contador Financiera';
-  old.activities[0].assignedTo = 'Carlos Ramírez';
-  storage.setItem(STORAGE_KEY, JSON.stringify(old));
-  const repository = new LocalStorageRepository(storage);
-  const names = Object.fromEntries(repository.list('users').map((user) => [user.email, user.name]));
+test('los nombres de las cuentas demo y de los registros guardados están actualizados', () => {
+  const names = Object.fromEntries(SEED_USERS.map((user) => [user.email, user.name]));
   assert.equal(names['operario@agrosmart.com'], 'Diego Fajardo');
   assert.equal(names['agronomo@agrosmart.com'], 'Juan Murillo');
   assert.equal(names['contador@agrosmart.com'], 'Nicolás Galvis');
+
+  const storage = new MemoryStorage();
+  const old = structuredClone(mockData);
+  old.activities[0].assignedTo = 'Carlos Ramírez';
+  old.news[0].reportedBy = 'Laura Méndez';
+  storage.setItem(STORAGE_KEY, JSON.stringify(old));
+  const repository = new LocalStorageRepository(storage);
   assert.equal(repository.list('activities')[0].assignedTo, 'Diego Fajardo');
+  assert.equal(repository.list('news')[0].reportedBy, 'Juan Murillo');
 });

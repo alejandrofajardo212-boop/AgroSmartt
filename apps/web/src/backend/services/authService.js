@@ -5,6 +5,7 @@ import {
 } from '../data/mockData.js';
 import { ROLE_OPTIONS, ROLES } from '../models/roles.js';
 import { LocalStorageRepository } from '../repositories/localStorageRepository.js';
+import { SEED_USERS, SEED_USER_EMAILS } from '../../../../shared/seedUsers.js';
 
 const PASSWORD_ITERATIONS = 120000;
 
@@ -40,13 +41,13 @@ export class LocalAuthService {
     if (!ROLE_OPTIONS.includes(role)) throw new Error('El rol seleccionado no está permitido.');
 
     const normalizedEmail = email.trim().toLowerCase();
-    const account = this.repository.list('users').find((item) => item.email === normalizedEmail);
-    if (account?.passwordHash && account.passwordSalt && account.role === role) {
-      const passwordHash = await derivePasswordHash(password, account.passwordSalt);
-      if (passwordHash !== account.passwordHash) {
-        throw new Error('Credenciales incorrectas o el rol no corresponde a esta cuenta.');
-      }
-    } else {
+    const account = SEED_USERS.find((item) => item.email === normalizedEmail)
+      || this.repository.list('users').find((item) => item.email === normalizedEmail);
+    if (!account?.passwordHash || !account.passwordSalt || account.role !== role) {
+      throw new Error('Credenciales incorrectas o el rol no corresponde a esta cuenta.');
+    }
+    const passwordHash = await derivePasswordHash(password, account.passwordSalt);
+    if (passwordHash !== account.passwordHash) {
       throw new Error('Credenciales incorrectas o el rol no corresponde a esta cuenta.');
     }
 
@@ -94,6 +95,9 @@ export class LocalAuthService {
       throw new Error('La contraseña temporal debe tener entre 8 y 128 caracteres.');
     }
 
+    if (SEED_USER_EMAILS.has(normalizedEmail)) {
+      throw new Error('Ya existe una cuenta con ese correo electrónico.');
+    }
     const exists = this.repository.list('users').some((user) => user.email === normalizedEmail);
     if (exists) throw new Error('Ya existe una cuenta con ese correo electrónico.');
 
@@ -122,7 +126,7 @@ export class LocalAuthService {
         && active.role === session.user?.role
         && active.expiresAt > Date.now()
       );
-      const registeredAccount = this.repository.list('users').find((account) =>
+      const registeredAccount = [...SEED_USERS, ...this.repository.list('users')].find((account) =>
         account.id === session.user?.id
         && account.email === session.user?.email
         && account.role === session.user?.role

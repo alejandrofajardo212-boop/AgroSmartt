@@ -1,7 +1,7 @@
 /**
  * seed-users.js — Script de utilidad (solo desarrollo)
  * Genera los hashes PBKDF2 de los 4 usuarios demo y los imprime en formato
- * listo para pegar en mockData.js.
+ * listo para pegar en apps/shared/seedUsers.js > SEED_USERS.
  *
  * Uso: node apps/web/seed-users.js
  */
@@ -40,5 +40,5 @@ for (const u of users) {
   console.log(`✓ ${u.email} [${u.role}]`);
 }
 
-console.log('\n── Copia este bloque en mockData.js > users: [ ... ] ──\n');
+console.log('\n── Copia este bloque en apps/shared/seedUsers.js > SEED_USERS ──\n');
 console.log(JSON.stringify(results, null, 2));

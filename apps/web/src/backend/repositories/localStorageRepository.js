@@ -1,4 +1,5 @@
 import { mockData, STORAGE_KEY } from '../data/mockData.js';
+import { SEED_USER_EMAILS } from '../../../../shared/seedUsers.js';
 
 /** Nombres antiguos de las cuentas de demostración que se reemplazan en datos ya guardados */
 const LEGACY_NAMES = {
@@ -7,19 +8,11 @@ const LEGACY_NAMES = {
 };
 
 /**
- * Mantiene los nombres de las cuentas de demostración al día aunque el navegador
- * ya tenga datos guardados de una versión anterior. Devuelve true si cambió algo.
+ * Reemplaza los nombres antiguos de las cuentas demo en los registros que el navegador
+ * ya tenía guardados (las cuentas demo viven en apps/shared/seedUsers.js). Devuelve true si cambió algo.
  */
 function syncSeedNames(state) {
   let changed = false;
-  const seedById = new Map(mockData.users.map((user) => [user.id, user.name]));
-  for (const user of state.users || []) {
-    const seedName = seedById.get(user.id);
-    if (seedName && user.name !== seedName) {
-      user.name = seedName;
-      changed = true;
-    }
-  }
   for (const [collection, key] of [['activities', 'assignedTo'], ['tasks', 'assignedTo'], ['news', 'reportedBy']]) {
     for (const record of state[collection] || []) {
       const replacement = LEGACY_NAMES[record[key]];
@@ -59,6 +52,7 @@ export class LocalStorageRepository {
           user
           && typeof user.passwordHash === 'string'
           && typeof user.passwordSalt === 'string'
+          && !SEED_USER_EMAILS.has(user.email)
         );
       }
       if (syncSeedNames(state)) this.writeState(state);

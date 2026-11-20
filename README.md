@@ -38,9 +38,18 @@ npm run dev
 
 Abre `http://localhost:9000`. La API Express de referencia se inicia también en `http://localhost:3000/api`; la aplicación local puede seguir operando aunque esa API no esté disponible. La configuración de Vite reenvía `/api` a Express para las futuras pantallas conectadas a HTTP.
 
-## Crear cuenta e iniciar sesión
+## Cuentas de demostración e inicio de sesión
 
-Cada usuario debe crear una cuenta antes de iniciar sesión. En la pantalla de acceso, selecciona **Crear cuenta**, elige uno de los cuatro perfiles y registra su nombre, correo y contraseña. Después vuelve a **Iniciar sesión** y usa esas mismas credenciales y perfil. No hay cuentas de demostración ni credenciales precargadas.
+Hay cuatro cuentas de demostración disponibles sin registrar usuarios ni guardar sus datos en el navegador o en el repositorio de la API. Selecciona el perfil indicado e inicia sesión con estas credenciales:
+
+| Perfil | Correo | Contraseña |
+|---|---|---|
+| Administrador | `admin@agrosmart.com` | `Admin2026!` |
+| Trabajador / Operario | `operario@agrosmart.com` | `Operario2026!` |
+| Ingeniero agrónomo / Técnico | `agronomo@agrosmart.com` | `Agronomo2026!` |
+| Contador / Encargado financiero | `contador@agrosmart.com` | `Contador2026!` |
+
+Las cuentas semilla y sus hashes viven en `apps/shared/seedUsers.js`; las contraseñas no se almacenan allí en texto plano. Las cuentas nuevas creadas desde la pantalla **Crear cuenta** sí se guardan en `localStorage` hasta conectar una base de datos.
 
 Se impide mantener sesiones activas simultáneas para la misma cuenta o perfil. Cierra sesión desde el icono del usuario para liberar el acceso. El cierre borra las claves de sesión, pero conserva las cuentas registradas y los datos de la plataforma.
 
