@@ -1,5 +1,37 @@
 import { mockData, STORAGE_KEY } from '../data/mockData.js';
 
+/** Nombres antiguos de las cuentas de demostración que se reemplazan en datos ya guardados */
+const LEGACY_NAMES = {
+  'Carlos Ramírez': 'Diego Fajardo',
+  'Laura Méndez': 'Juan Murillo'
+};
+
+/**
+ * Mantiene los nombres de las cuentas de demostración al día aunque el navegador
+ * ya tenga datos guardados de una versión anterior. Devuelve true si cambió algo.
+ */
+function syncSeedNames(state) {
+  let changed = false;
+  const seedById = new Map(mockData.users.map((user) => [user.id, user.name]));
+  for (const user of state.users || []) {
+    const seedName = seedById.get(user.id);
+    if (seedName && user.name !== seedName) {
+      user.name = seedName;
+      changed = true;
+    }
+  }
+  for (const [collection, key] of [['activities', 'assignedTo'], ['tasks', 'assignedTo'], ['news', 'reportedBy']]) {
+    for (const record of state[collection] || []) {
+      const replacement = LEGACY_NAMES[record[key]];
+      if (replacement) {
+        record[key] = replacement;
+        changed = true;
+      }
+    }
+  }
+  return changed;
+}
+
 export class LocalStorageRepository {
   constructor(storage = globalThis.localStorage) {
     if (!storage) throw new Error('El almacenamiento local del navegador no está disponible.');
@@ -29,6 +61,7 @@ export class LocalStorageRepository {
           && typeof user.passwordSalt === 'string'
         );
       }
+      if (syncSeedNames(state)) this.writeState(state);
       return state;
     } catch (error) {
       throw new Error('No se pudieron leer los datos guardados. Limpia los datos locales e inténtalo nuevamente.', { cause: error });

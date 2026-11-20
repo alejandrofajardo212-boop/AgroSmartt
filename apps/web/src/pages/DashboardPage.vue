@@ -65,7 +65,7 @@ onMounted(() => {
       <div>
         <div class="eyebrow">{{ today.toLocaleUpperCase('es-CO') }}</div>
         <h1>Hola, {{ auth.user?.name?.split(' ')[0] }}</h1>
-        <p>Este es tu espacio de trabajo como {{ auth.user?.role }}.<span v-if="auth.user?.role === ROLES.WORKER"> Accede a tus 4 módulos operativos desde los accesos directos.</span></p>
+        <p>Este es tu espacio de trabajo como {{ auth.user?.role }}.<span v-if="auth.user?.role === ROLES.WORKER"> Accede a tus {{ availableModules.length }} módulos operativos desde los accesos directos.</span></p>
       </div>
       <q-badge class="role-badge" color="green-1" text-color="primary"><q-icon name="verified_user" /> {{ auth.user?.role }}</q-badge>
     </div>
@@ -86,11 +86,13 @@ onMounted(() => {
       </div>
       <div class="row q-col-gutter-md">
         <div v-for="module in availableModules" :key="module.id" class="col-12 col-sm-6 col-lg-4">
-          <q-card flat bordered class="module-shortcut" :to="module.path" clickable>
-            <div class="module-shortcut__icon"><q-icon :name="module.icon" /></div>
-            <div class="module-shortcut__copy"><strong>{{ module.label }}</strong><span>{{ module.description }}</span></div>
-            <q-icon class="module-shortcut__arrow" name="arrow_forward" />
-          </q-card>
+          <router-link :to="module.path" class="module-shortcut-link" :aria-label="`Ir al módulo ${module.label}`">
+            <q-card flat bordered class="module-shortcut">
+              <div class="module-shortcut__icon"><q-icon :name="module.icon" /></div>
+              <div class="module-shortcut__copy"><strong>{{ module.label }}</strong><span>{{ module.description }}</span></div>
+              <q-icon class="module-shortcut__arrow" name="arrow_forward" />
+            </q-card>
+          </router-link>
         </div>
       </div>
     </section>

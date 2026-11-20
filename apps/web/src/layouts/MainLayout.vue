@@ -90,6 +90,25 @@ function openFirstSearchResult() {
 watch(search, runSearch);
 onBeforeUnmount(() => clearTimeout(searchTimeout));
 
+const notificationsOpen = ref(false);
+
+function refreshNotifications() {
+  try {
+    platform.loadNotifications(auth.user);
+  } catch (error) {
+    $q.notify({ type: 'negative', message: error.message || 'No se pudieron cargar las notificaciones.' });
+  }
+}
+
+function openNotification(item) {
+  platform.markNotificationRead(item.id);
+  notificationsOpen.value = false;
+  router.push({ path: item.path, query: { detail: item.recordId } });
+}
+
+// Carga las notificaciones al entrar y cada vez que cambia de usuario o de pantalla
+watch(() => [auth.user?.id, route.fullPath], refreshNotifications, { immediate: true });
+
 function signOut() {
   try {
     auth.logout();
@@ -179,8 +198,60 @@ watch(() => auth.isAuthenticated, (authenticated) => {
             </q-menu>
           </div>
           <q-space />
-          <q-btn flat round dense icon="notifications_none" aria-label="Notificaciones">
-            <q-badge color="negative" floating rounded />
+          <q-btn
+            flat
+            round
+            dense
+            :icon="platform.unreadCount ? 'notifications_active' : 'notifications_none'"
+            aria-label="Notificaciones"
+            @click="refreshNotifications"
+          >
+            <q-badge v-if="platform.unreadCount" color="negative" floating rounded>{{ platform.unreadCount > 9 ? '9+' : platform.unreadCount }}</q-badge>
+            <q-tooltip>Notificaciones</q-tooltip>
+            <q-menu v-model="notificationsOpen" anchor="bottom right" self="top right" :offset="[0, 8]">
+              <div class="notifications-panel">
+                <div class="notifications-panel__header">
+                  <div>
+                    <div class="notifications-panel__title">Notificaciones</div>
+                    <div class="notifications-panel__subtitle">{{ platform.unreadCount ? `${platform.unreadCount} sin leer` : 'Estás al día' }}</div>
+                  </div>
+                  <q-btn
+                    v-if="platform.unreadCount"
+                    flat
+                    dense
+                    no-caps
+                    color="primary"
+                    label="Marcar todas como leídas"
+                    @click="platform.markAllNotificationsRead()"
+                  />
+                </div>
+                <q-separator />
+                <q-list class="notifications-panel__list">
+                  <q-item
+                    v-for="item in platform.notifications"
+                    :key="item.id"
+                    clickable
+                    v-close-popup
+                    :class="{ 'notification-item--unread': !platform.isRead(item.id) }"
+                    @click="openNotification(item)"
+                  >
+                    <q-item-section avatar>
+                      <q-avatar size="34px" :color="item.tone" text-color="white" :icon="item.icon" />
+                    </q-item-section>
+                    <q-item-section>
+                      <q-item-label class="notification-item__title">{{ item.title }}</q-item-label>
+                      <q-item-label caption lines="2">{{ item.caption }}</q-item-label>
+                    </q-item-section>
+                    <q-item-section v-if="!platform.isRead(item.id)" side>
+                      <span class="notification-dot" aria-label="Sin leer" />
+                    </q-item-section>
+                  </q-item>
+                  <q-item v-if="!platform.notifications.length">
+                    <q-item-section class="text-grey-7 text-center q-py-md">No tienes notificaciones por ahora.</q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
+            </q-menu>
           </q-btn>
           <q-btn flat round dense icon="help_outline" aria-label="Ayuda" @click="$q.notify({ message: 'Selecciona un módulo del menú para consultar o registrar información.' })" />
           <q-avatar size="34px" color="green-1" text-color="primary">{{ auth.user?.name?.slice(0, 1) }}</q-avatar>

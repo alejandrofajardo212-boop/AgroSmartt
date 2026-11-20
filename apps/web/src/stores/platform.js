@@ -1,4 +1,4 @@
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { localApi } from '../backend/routes/localApi';
 
@@ -54,10 +54,60 @@ export const usePlatformStore = defineStore('platform', () => {
     return localApi.platform.farmDetails(farmId, role);
   }
 
+  const notifications = ref([]);
+  const readNotifications = ref(new Set());
+  let readKey = '';
+
+  function readStoredIds(key) {
+    try {
+      const parsed = JSON.parse(globalThis.localStorage?.getItem(key) || '[]');
+      return new Set(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function saveReadIds() {
+    try {
+      globalThis.localStorage?.setItem(readKey, JSON.stringify([...readNotifications.value]));
+    } catch {
+      // Si el navegador no permite guardar, las notificaciones leídas solo duran esta sesión.
+    }
+  }
+
+  function loadNotifications(user) {
+    if (!user) {
+      notifications.value = [];
+      return [];
+    }
+    readKey = `agrosmart.notifications.read.${user.id}`;
+    readNotifications.value = readStoredIds(readKey);
+    notifications.value = localApi.platform.notifications(user.role);
+    return notifications.value;
+  }
+
+  function isRead(id) {
+    return readNotifications.value.has(id);
+  }
+
+  function markNotificationRead(id) {
+    if (readNotifications.value.has(id)) return;
+    readNotifications.value = new Set([...readNotifications.value, id]);
+    saveReadIds();
+  }
+
+  function markAllNotificationsRead() {
+    readNotifications.value = new Set([...readNotifications.value, ...notifications.value.map((item) => item.id)]);
+    saveReadIds();
+  }
+
+  const unreadCount = computed(() => notifications.value.filter((item) => !readNotifications.value.has(item.id)).length);
+
   function loadDashboard(role) {
     dashboard.value = localApi.platform.dashboard(role);
     return dashboard.value;
   }
 
-  return { collections, farmsForSelect, dashboard, loading, load, searchRecords, create, update, remove, createUser, getFarmDetails, loadDashboard };
+  return { collections, farmsForSelect, dashboard, loading, load, searchRecords, create, update, remove, createUser, getFarmDetails, loadDashboard,
+    notifications, unreadCount, loadNotifications, isRead, markNotificationRead, markAllNotificationsRead };
 });

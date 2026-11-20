@@ -25,9 +25,9 @@ function uuid() {
 
 const users = [
   { name: 'Admin AgroSmart',    email: 'admin@agrosmart.com',     password: 'Admin2026!',     role: 'Administrador' },
-  { name: 'Carlos Ramírez',     email: 'operario@agrosmart.com',  password: 'Operario2026!',  role: 'Trabajador / Operario' },
-  { name: 'Dr. Laura Méndez',   email: 'agronomo@agrosmart.com',  password: 'Agronomo2026!',  role: 'Ingeniero agrónomo / Técnico' },
-  { name: 'Contadora Financiera', email: 'contador@agrosmart.com', password: 'Contador2026!', role: 'Contador / Encargado financiero' },
+  { name: 'Diego Fajardo',     email: 'operario@agrosmart.com',  password: 'Operario2026!',  role: 'Trabajador / Operario' },
+  { name: 'Juan Murillo',       email: 'agronomo@agrosmart.com',  password: 'Agronomo2026!',  role: 'Ingeniero agrónomo / Técnico' },
+  { name: 'Nicolás Galvis', email: 'contador@agrosmart.com', password: 'Contador2026!', role: 'Contador / Encargado financiero' },
 ];
 
 console.log('Generando hashes (puede tardar ~5 seg por usuario)...\n');

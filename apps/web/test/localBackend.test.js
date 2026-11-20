@@ -3,8 +3,9 @@ import { test } from 'node:test';
 import { LocalStorageRepository } from '../src/backend/repositories/localStorageRepository.js';
 import { LocalAuthService, SessionConflictError } from '../src/backend/services/authService.js';
 import { EMPTY_FIELDS_ERROR, PlatformService } from '../src/backend/services/platformService.js';
-import { ROLES } from '../src/backend/models/roles.js';
-import { ACTIVE_SESSIONS_KEY, SESSION_KEY, mockData } from '../src/backend/data/mockData.js';
+import { ROLES, canAccessModule } from '../src/backend/models/roles.js';
+import { MODULES } from '../src/backend/models/modules.js';
+import { ACTIVE_SESSIONS_KEY, SESSION_KEY, STORAGE_KEY, mockData } from '../src/backend/data/mockData.js';
 
 class MemoryStorage {
   values = new Map();
@@ -84,16 +85,16 @@ test('demo accounts log in with the role name followed by 2026', async () => {
 test('platform validates required fields and enforces module roles', () => {
   const platform = new PlatformService(new LocalStorageRepository(new MemoryStorage()));
   assert.throws(
-    () => platform.create('farms', { name: 'Sin coordenadas' }, ROLES.ADMIN),
+    () => platform.create('crops', { name: 'Sin datos' }, ROLES.ADMIN),
     new RegExp(EMPTY_FIELDS_ERROR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   );
   assert.throws(
-    () => platform.list('farms', ROLES.ACCOUNTANT),
+    () => platform.list('farms', ROLES.WORKER),
     /No tienes permisos/
   );
   assert.throws(
-    () => platform.create('users', {}, ROLES.ADMIN),
-    /servicio de autenticación/
+    () => platform.list('sensors', ROLES.ACCOUNTANT),
+    /No tienes permisos/
   );
   assert.equal(platform.list('expenses', ROLES.ACCOUNTANT).length, 1);
 });
@@ -105,7 +106,7 @@ test('global search returns only records accessible to each role', () => {
   const accountantRecords = platform.searchRecords(ROLES.ACCOUNTANT);
   const adminRecords = platform.searchRecords(ROLES.ADMIN);
 
-  assert.ok(workerRecords.some((item) => item.moduleId === 'farms'));
+  assert.ok(!workerRecords.some((item) => item.moduleId === 'farms'));
   assert.ok(!workerRecords.some((item) => item.moduleId === 'sensors'));
   assert.ok(agronomistRecords.some((item) => item.moduleId === 'sensors'));
   assert.ok(accountantRecords.some((item) => item.moduleId === 'expenses'));
@@ -113,47 +114,39 @@ test('global search returns only records accessible to each role', () => {
   assert.ok(!adminRecords.some((item) => item.moduleId === 'users'));
 });
 
-test('farm details resolve crops and sensors from local state', () => {
+test('fincas: visibles para administrador y técnico, ocultas para operario y contador', () => {
   const platform = new PlatformService(new LocalStorageRepository(new MemoryStorage()));
-  const details = platform.getFarmDetails('farm-1', ROLES.AGRONOMIST);
-  assert.equal(details.farm.name, 'Finca El Paraíso');
-  assert.equal(details.crops.length, 2);
-  assert.equal(details.sensors.length, 2);
+  assert.equal(platform.dashboard(ROLES.ADMIN).farms, 3);
+  assert.equal(platform.list('farms', ROLES.AGRONOMIST).length, 3);
+  assert.equal(platform.dashboard(ROLES.WORKER).farms, 0);
+  assert.throws(() => platform.list('farms', ROLES.WORKER), /No tienes permisos/);
+  assert.throws(() => platform.list('farms', ROLES.ACCOUNTANT), /No tienes permisos/);
 });
 
 test('editable records update their fields while preserving identity and creation time', () => {
   const platform = new PlatformService(new LocalStorageRepository(new MemoryStorage()));
-  const originalFarm = platform.list('farms', ROLES.ADMIN)[0];
-  const updatedFarm = platform.update('farms', originalFarm.id, {
-    name: 'Finca El Paraíso Norte',
-    location: originalFarm.location,
-    areaHa: originalFarm.areaHa,
-    latitude: originalFarm.latitude,
-    longitude: originalFarm.longitude
+  const originalCrop = platform.list('crops', ROLES.ADMIN)[0];
+  const updatedCrop = platform.update('crops', originalCrop.id, {
+    ...originalCrop,
+    name: 'Tomate Norte'
   }, ROLES.ADMIN);
 
-  assert.equal(updatedFarm.name, 'Finca El Paraíso Norte');
-  assert.equal(updatedFarm.id, originalFarm.id);
-  assert.equal(updatedFarm.createdAt, originalFarm.createdAt);
+  assert.equal(updatedCrop.name, 'Tomate Norte');
+  assert.equal(updatedCrop.id, originalCrop.id);
+  assert.equal(updatedCrop.createdAt, originalCrop.createdAt);
   assert.throws(
-    () => platform.update('farms', 'missing-farm', {
-      name: 'Finca',
-      location: 'Ubicación',
-      areaHa: 1,
-      latitude: 0,
-      longitude: 0
-    }, ROLES.ADMIN),
+    () => platform.update('crops', 'missing-crop', { ...originalCrop, name: 'Cultivo' }, ROLES.ADMIN),
     /No se encontró el registro/
   );
 });
 
-test('record deletion is role-protected and preserves farms with associated records', () => {
+test('record deletion is role-protected', () => {
   const platform = new PlatformService(new LocalStorageRepository(new MemoryStorage()));
   const expense = platform.list('expenses', ROLES.ACCOUNTANT)[0];
 
   assert.throws(
     () => platform.remove('farms', 'farm-1', ROLES.ADMIN),
-    /registros asociados/
+    /tiene registros asociados/
   );
   assert.throws(
     () => platform.remove('expenses', expense.id, ROLES.WORKER),
@@ -264,4 +257,37 @@ test('accounts for all four roles can register and sign in to their role', async
     assert.equal(session.user.role, role);
     auth.logout();
   }
+});
+
+test('el operario solo ve cultivos, actividades, tareas, cosechas y novedades', () => {
+  assert.deepEqual(
+    MODULES.filter((module) => canAccessModule(ROLES.WORKER, module.id)).map((module) => module.id),
+    ['crops', 'activities', 'tasks', 'harvests', 'news']
+  );
+  assert.equal(canAccessModule(ROLES.WORKER, 'farms'), false);
+});
+
+test('las notificaciones existen para los cuatro roles y respetan sus permisos', () => {
+  const platform = new PlatformService(new LocalStorageRepository(new MemoryStorage()));
+  for (const role of Object.values(ROLES)) {
+    const items = platform.notifications(role);
+    assert.ok(items.length > 0, `sin notificaciones para ${role}`);
+    assert.ok(items.every((item) => canAccessModule(role, item.moduleId)));
+    assert.equal(new Set(items.map((item) => item.id)).size, items.length);
+  }
+  assert.ok(!platform.notifications(ROLES.WORKER).some((item) => item.moduleId === 'sensors'));
+});
+
+test('los nombres de las cuentas demo se actualizan en datos ya guardados', () => {
+  const storage = new MemoryStorage();
+  const old = structuredClone(mockData);
+  old.users.find((user) => user.email === 'contador@agrosmart.com').name = 'Contador Financiera';
+  old.activities[0].assignedTo = 'Carlos Ramírez';
+  storage.setItem(STORAGE_KEY, JSON.stringify(old));
+  const repository = new LocalStorageRepository(storage);
+  const names = Object.fromEntries(repository.list('users').map((user) => [user.email, user.name]));
+  assert.equal(names['operario@agrosmart.com'], 'Diego Fajardo');
+  assert.equal(names['agronomo@agrosmart.com'], 'Juan Murillo');
+  assert.equal(names['contador@agrosmart.com'], 'Nicolás Galvis');
+  assert.equal(repository.list('activities')[0].assignedTo, 'Diego Fajardo');
 });

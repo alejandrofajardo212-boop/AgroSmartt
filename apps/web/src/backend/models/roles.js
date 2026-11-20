@@ -9,7 +9,7 @@ export const ROLE_OPTIONS = Object.values(ROLES);
 
 export const ROLE_ACCESS = Object.freeze({
   [ROLES.ADMIN]: ['*'],
-  [ROLES.WORKER]: ['farms', 'crops', 'activities', 'tasks', 'harvests', 'news'],
+  [ROLES.WORKER]: ['crops', 'activities', 'tasks', 'harvests', 'news'],
   [ROLES.AGRONOMIST]: ['farms', 'crops', 'sensors', 'activities', 'recommendations', 'pests'],
   [ROLES.ACCOUNTANT]: ['expenses', 'income', 'costs']
 });

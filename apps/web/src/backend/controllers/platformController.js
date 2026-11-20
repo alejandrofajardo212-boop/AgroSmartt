@@ -31,6 +31,10 @@ export class PlatformController {
     return this.platformService.getFarmDetails(farmId, role);
   }
 
+  notifications(role) {
+    return this.platformService.notifications(role);
+  }
+
   dashboard(role) {
     return this.platformService.dashboard(role);
   }

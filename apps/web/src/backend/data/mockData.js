@@ -15,7 +15,7 @@ export const mockData = {
     },
     {
       "id": "16e361a6-5799-4f69-903d-2d7a9e5abf7f",
-      "name": "Carlos Ramírez",
+      "name": "Diego Fajardo",
       "email": "operario@agrosmart.com",
       "role": "Trabajador / Operario",
       "passwordHash": "27dd8cf13b7e9785566d3e10fae7495cadd2d48dab39f800c4bbb03c1c77a31a",
@@ -23,7 +23,7 @@ export const mockData = {
     },
     {
       "id": "56ec1a50-8e80-4647-8d42-e0532896ad50",
-      "name": "Dra. Laura Méndez",
+      "name": "Juan Murillo",
       "email": "agronomo@agrosmart.com",
       "role": "Ingeniero agrónomo / Técnico",
       "passwordHash": "c01f31e0edd0d48887a343cce1af5ba21de816be138b0345fb456d15e4c8c103",
@@ -31,7 +31,7 @@ export const mockData = {
     },
     {
       "id": "5db5669f-5d38-449c-b702-acb06042ab24",
-      "name": "Contadora Financiera",
+      "name": "Nicolás Galvis",
       "email": "contador@agrosmart.com",
       "role": "Contador / Encargado financiero",
       "passwordHash": "9ecede190e7593fda5b595d4ab06a36d4ffdb207551a8c94156b0e2dd7da770b",
@@ -55,15 +55,15 @@ export const mockData = {
     { id: 'sensor-3', name: 'Sensor Suelo 03', type: 'Humedad del suelo', farmId: 'farm-2', value: 34, unit: '%', status: 'Alerta' }
   ],
   activities: [
-    { id: 'activity-1', title: 'Revisión del sistema de riego', farmId: 'farm-1', assignedTo: 'Carlos Ramírez', date: '2026-11-12', status: 'En progreso' },
-    { id: 'activity-2', title: 'Inspección de hojas', farmId: 'farm-2', assignedTo: 'Laura Méndez', date: '2026-11-13', status: 'Pendiente' }
+    { id: 'activity-1', title: 'Revisión del sistema de riego', farmId: 'farm-1', assignedTo: 'Diego Fajardo', date: '2026-11-12', status: 'En progreso' },
+    { id: 'activity-2', title: 'Inspección de hojas', farmId: 'farm-2', assignedTo: 'Juan Murillo', date: '2026-11-13', status: 'Pendiente' }
   ],
   tasks: [
-    { id: 'task-1', title: 'Preparar fertilización', farmId: 'farm-1', assignedTo: 'Carlos Ramírez', dueDate: '2026-11-14', priority: 'Alta' },
-    { id: 'task-2', title: 'Limpiar canal de drenaje', farmId: 'farm-2', assignedTo: 'Carlos Ramírez', dueDate: '2026-11-15', priority: 'Media' }
+    { id: 'task-1', title: 'Preparar fertilización', farmId: 'farm-1', assignedTo: 'Diego Fajardo', dueDate: '2026-11-14', priority: 'Alta' },
+    { id: 'task-2', title: 'Limpiar canal de drenaje', farmId: 'farm-2', assignedTo: 'Diego Fajardo', dueDate: '2026-11-15', priority: 'Media' }
   ],
   harvests: [{ id: 'harvest-1', crop: 'Tomate', farmId: 'farm-1', date: '2026-11-08', quantityKg: 340, quality: 'Primera' }],
-  news: [{ id: 'news-1', title: 'Fuga menor en válvula de riego', farmId: 'farm-2', reportedBy: 'Carlos Ramírez', date: '2026-11-12', description: 'Se aisló la válvula y quedó pendiente el reemplazo.' }],
+  news: [{ id: 'news-1', title: 'Fuga menor en válvula de riego', farmId: 'farm-2', reportedBy: 'Diego Fajardo', date: '2026-11-12', description: 'Se aisló la válvula y quedó pendiente el reemplazo.' }],
   recommendations: [{ id: 'recommendation-1', title: 'Aumentar frecuencia de riego', crop: 'Maíz', farmId: 'farm-2', priority: 'Alta', description: 'La humedad del suelo está por debajo del rango recomendado.' }],
   pests: [{ id: 'pest-1', name: 'Mosca blanca', crop: 'Tomate', farmId: 'farm-1', severity: 'Baja', treatment: 'Monitorear semanalmente y mantener control biológico.' }],
   expenses: [{ id: 'expense-1', concept: 'Fertilizante orgánico', farmId: 'farm-1', category: 'Insumos', amount: 480000, date: '2026-11-05' }],

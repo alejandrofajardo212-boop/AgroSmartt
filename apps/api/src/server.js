@@ -32,7 +32,7 @@ if (process.env.NODE_ENV !== 'production') {
   if (!repository.findUserByEmail('operario@agrosmart.com')) {
     await repository.insert('users', {
       id: randomUUID(),
-      name: 'Carlos Ramírez',
+      name: 'Diego Fajardo',
       email: 'operario@agrosmart.com',
       passwordHash: await bcrypt.hash('Trabajador / Operario2026', 12),
       role: 'Trabajador / Operario'

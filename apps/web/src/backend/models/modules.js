@@ -3,7 +3,7 @@ import { ROLES } from './roles.js';
 const commonRoles = [ROLES.ADMIN];
 
 export const MODULES = [
-  { id: 'farms', path: '/terrenos', label: 'Fincas', singular: 'Finca', icon: 'map', description: 'Ubicación, superficie y estado de tus fincas.', roles: [ROLES.ADMIN, ROLES.WORKER, ROLES.AGRONOMIST], fields: [
+  { id: 'farms', path: '/terrenos', label: 'Fincas', singular: 'Finca', icon: 'map', description: 'Ubicación, superficie y estado de tus fincas.', roles: [ROLES.ADMIN, ROLES.AGRONOMIST], fields: [
     { key: 'name', label: 'Nombre de la finca', required: true },
     { key: 'location', label: 'Ubicación', required: true },
     { key: 'areaHa', label: 'Área (hectáreas)', type: 'number', required: true, min: 0.1 },
@@ -105,8 +105,8 @@ export const MODULES = [
 
 export const MODULE_BY_ID = Object.fromEntries(MODULES.map((module) => [module.id, module]));
 
-/** IDs de los 4 módulos exclusivos del rol Trabajador / Operario */
-export const WORKER_MODULE_IDS = ['activities', 'tasks', 'harvests', 'news'];
+/** IDs de los módulos del rol Trabajador / Operario (sin Fincas) */
+export const WORKER_MODULE_IDS = ['crops', 'activities', 'tasks', 'harvests', 'news'];
 
 /** Módulos filtrados para el Trabajador (en el orden del menú operario) */
 export const WORKER_MODULES = WORKER_MODULE_IDS.map((id) => MODULE_BY_ID[id]);

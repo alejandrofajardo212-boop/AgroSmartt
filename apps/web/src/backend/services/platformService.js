@@ -147,6 +147,129 @@ export class PlatformService {
     };
   }
 
+  /**
+   * Notificaciones calculadas a partir de los datos de los módulos que el rol puede ver.
+   * Cada notificación tiene un id estable para poder marcarla como leída.
+   */
+  notifications(role) {
+    if (!ROLE_OPTIONS.includes(role)) throw new Error('El rol seleccionado no está permitido.');
+    const permitted = (moduleId) => canAccessModule(role, moduleId);
+    const list = (moduleId) => (permitted(moduleId) ? this.repository.list(moduleId) : []);
+    const farmName = new Map(this.repository.list('farms').map((farm) => [farm.id, farm.name]));
+    const where = (record) => farmName.get(record.farmId) || 'Sin finca';
+    const money = (amount) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount || 0);
+    const items = [];
+    const push = (moduleId, record, data) => items.push({
+      id: `${moduleId}:${record.id}:${data.kind || 'info'}`,
+      moduleId,
+      recordId: record.id,
+      path: MODULE_BY_ID[moduleId].path,
+      date: record.date || record.dueDate || record.plantedAt || record.createdAt || '',
+      ...data
+    });
+
+    for (const task of list('tasks')) {
+      if (task.status === 'Completada') continue;
+      push('tasks', task, {
+        kind: 'pending',
+        icon: 'task_alt',
+        tone: task.priority === 'Alta' ? 'negative' : 'warning',
+        title: `Tarea pendiente: ${task.title}`,
+        caption: `Prioridad ${task.priority || 'sin definir'} · vence ${task.dueDate || 'sin fecha'} · ${where(task)}`
+      });
+    }
+    for (const activity of list('activities')) {
+      if (activity.status === 'Completada') continue;
+      push('activities', activity, {
+        kind: 'open',
+        icon: 'event_note',
+        tone: 'info',
+        title: `Actividad ${String(activity.status || 'pendiente').toLowerCase()}: ${activity.title}`,
+        caption: `${activity.assignedTo || 'Sin responsable'} · ${activity.date || 'sin fecha'} · ${where(activity)}`
+      });
+    }
+    for (const item of list('news')) {
+      push('news', item, {
+        icon: 'campaign',
+        tone: 'warning',
+        title: `Novedad: ${item.title}`,
+        caption: `Reportada por ${item.reportedBy || 'el equipo'} · ${item.date || ''} · ${where(item)}`
+      });
+    }
+    for (const crop of list('crops')) {
+      if (crop.health !== 'Crítico' && crop.health !== 'Atención') continue;
+      push('crops', crop, {
+        kind: 'health',
+        icon: 'grass',
+        tone: crop.health === 'Crítico' ? 'negative' : 'warning',
+        title: `Cultivo en estado ${crop.health.toLowerCase()}: ${crop.name}`,
+        caption: `${crop.variety || ''} · etapa ${crop.stage || 'sin definir'} · ${where(crop)}`
+      });
+    }
+    for (const farm of list('farms')) {
+      if (farm.status === 'Saludable') continue;
+      push('farms', farm, {
+        kind: 'status',
+        icon: 'map',
+        tone: 'warning',
+        title: `Finca ${String(farm.status || '').toLowerCase()}: ${farm.name}`,
+        caption: `${farm.location} · ${farm.areaHa} ha`
+      });
+    }
+    for (const sensor of list('sensors')) {
+      if (sensor.status === 'En línea') continue;
+      push('sensors', sensor, {
+        kind: 'status',
+        icon: 'sensors',
+        tone: 'negative',
+        title: `Sensor ${String(sensor.status).toLowerCase()}: ${sensor.name}`,
+        caption: `${sensor.type} · lectura ${sensor.value}${sensor.unit || ''} · ${where(sensor)}`
+      });
+    }
+    for (const pest of list('pests')) {
+      push('pests', pest, {
+        icon: 'pest_control',
+        tone: pest.severity === 'Alta' ? 'negative' : 'warning',
+        title: `Reporte fitosanitario: ${pest.name}`,
+        caption: `${pest.crop} · severidad ${pest.severity} · ${where(pest)}`
+      });
+    }
+    for (const rec of list('recommendations')) {
+      push('recommendations', rec, {
+        icon: 'lightbulb',
+        tone: rec.priority === 'Alta' ? 'warning' : 'info',
+        title: `Recomendación: ${rec.title}`,
+        caption: `${rec.crop} · prioridad ${rec.priority} · ${where(rec)}`
+      });
+    }
+    for (const expense of list('expenses')) {
+      push('expenses', expense, {
+        icon: 'payments',
+        tone: 'negative',
+        title: `Gasto registrado: ${expense.concept}`,
+        caption: `${money(expense.amount)} · ${expense.category} · ${expense.date || ''}`
+      });
+    }
+    for (const income of list('income')) {
+      push('income', income, {
+        icon: 'trending_up',
+        tone: 'positive',
+        title: `Ingreso registrado: ${income.concept}`,
+        caption: `${money(income.amount)} · ${income.buyer} · ${income.date || ''}`
+      });
+    }
+    for (const cost of list('costs')) {
+      push('costs', cost, {
+        icon: 'account_balance_wallet',
+        tone: 'warning',
+        title: `Costo de producción: ${cost.concept}`,
+        caption: `${money(cost.amount)} · ${cost.crop} · ${cost.date || ''}`
+      });
+    }
+
+    return items.sort((left, right) => String(right.date).localeCompare(String(left.date)));
+  }
+
   assertAccess(moduleId, role) {
     if (!MODULE_BY_ID[moduleId]) throw new Error('El módulo solicitado no existe.');
     if (!canAccessModule(role, moduleId)) throw new Error('No tienes permisos para acceder a este módulo.');
